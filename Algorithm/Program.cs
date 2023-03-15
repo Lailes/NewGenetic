@@ -17,7 +17,7 @@ var algorithm = new GeneticAlgorithm
 	Logger = new FolderLogger(@"C:\Users\Amade\Desktop\Populations\Data"),
 	RulesOfNature = new StandardRulesOfNature
 	{
-		MutationProbability = 0.01,
+		MutationProbability = 0.001,
 		Alpha = 2,
 		PickRadius = 0.1,
 		TournamentSize = 5,

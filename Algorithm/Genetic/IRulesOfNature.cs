@@ -6,8 +6,6 @@ public interface IRulesOfNature
 {
 	public Random Random { get; }
 
-	public Population ProcessSurvivingChance(Population population, Func<Chromosome, double> fi);
-
 	public Population Selection(Population population);
 
 	public Population Replication(Population population);

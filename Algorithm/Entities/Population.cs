@@ -7,10 +7,10 @@ public class Population
 {
 	public IList<Individual> Individuals { get; set; }
 
-	public IList<IndividualPosition> IndividualPositions => Individuals.Select(_ => new IndividualPosition(_, _fitnessFunction(_.Chromosome)))
+	public IList<IndividualPosition> IndividualPositions => Individuals.Select(_ => new IndividualPosition(_, FitnessFunction(_.Chromosome)))
 	                                                                   .ToList();
 
-	private readonly Func<Chromosome, double> _fitnessFunction;
+	public Func<Chromosome, double> FitnessFunction { get; }
 
 	public static Population RandomPopulation(Random random,
 	                                          int count,
@@ -32,7 +32,7 @@ public class Population
 	public Population(IList<Individual> individuals, Func<Chromosome, double> fitnessFunction)
 	{
 		Individuals = individuals;
-		_fitnessFunction = fitnessFunction;
+		FitnessFunction = fitnessFunction;
 	}
 
 	public Population ProcessNextPopulation(IRulesOfNature nature)
@@ -41,7 +41,6 @@ public class Population
 		var initialCount = x.Individuals.Count;
 
 		// Algorithm nature core. RULES OF NATURE!
-		x = nature.ProcessSurvivingChance(x, _fitnessFunction);
 		x = nature.Selection(x);
 		x = nature.Replication(x);
 		x = nature.Mutation(x);
@@ -49,4 +48,15 @@ public class Population
 
 		return x;
 	}
+}
+
+public static class PopulationExtensions{
+	public static Population ModifyPopulation(this IList<Individual> individuals, Population population)
+	{
+		population.Individuals = individuals;
+		return population;
+	}
+
+	public static Population NewPopulation(this IList<Individual> individuals, Population population) =>
+		new(individuals, population.FitnessFunction);
 }

@@ -20,100 +20,51 @@ public class StandardRulesOfNature : IRulesOfNature
 
 	public double MutationExcess { get; set; } = 0.3;
 
-	public Population ProcessSurvivingChance(Population population, Func<Chromosome, double> fi)
-	{
-		var min = double.MaxValue;
-		foreach (var individual in population.Individuals)
-		{
-			individual.SurviveChance = individual.Chromosome.CalculateFitnessFunction(population.Individuals.Select(_ => _.Chromosome), fi, PickRadius, Alpha);
-			if (individual.SurviveChance < min)
-				min = individual.SurviveChance;
-		}
-
-		min = Math.Abs(min);
-		var sum = 0.0;
-		foreach (var individual in population.Individuals)
-		{
-			individual.SurviveChance += min;
-			sum += individual.SurviveChance;
-		}
-
-		foreach (var individual in population.Individuals)
-			individual.SurviveChance /= sum;
-
-		return population;
-	}
-
 	// Tournament selection
-	public Population Selection(Population population)
-	{
-		var individuals = Enumerable.Range(0, population.Individuals.Count)
-		                            .Select(_ => population.Individuals.RandomItems(Random, TournamentSize))
-		                            .Select(_ => _.MaxBy(i => i.SurviveChance))
-		                            .ToList();
+	public Population Selection(Population population) =>
+		Enumerable.Range(0, population.Individuals.Count)
+		          .Select(_ => population.Individuals.RandomItems(Random, TournamentSize))
+		          .Select(_ => _.MaxBy(i => CalculateFitness(i, population)))
+		          .ToList()
+		          .ModifyPopulation(population);
 
-		population.Individuals = individuals!;
-		return population;
-	}
+	private double CalculateFitness(Individual individual, Population population) =>
+		individual.Chromosome.CalculateFitnessFunction(population.Individuals.Select(_ => _.Chromosome).ToList(), population.FitnessFunction, PickRadius, Alpha);
 
-	public Population Replication(Population population)
-	{
-		var genes1 = population.Individuals.Select(_ => _.Chromosome).OrderBy(_ => Random.NextDouble());
-		var genes2 = population.Individuals.Select(_ => _.Chromosome).OrderBy(_ => Random.NextDouble());
+	public Population Replication(Population population) =>
+		population.Individuals
+		          .Select(_ => _.Chromosome)
+		          .OrderBy(_ => Random.NextDouble())
+		          .Chunk(2)
+		          .SelectMany(_ => CrossLiniar(_[0], _[1], population))
+		          .Select(_ => new Individual(_))
+		          .ToList()
+		          .ModifyPopulation(population);
 
-		population.Individuals = genes1.Zip(genes2)
-		                               .Select(Cross)
-		                               .Select(_ => new Individual(_))
-		                               .ToList();
-
-		return population;
-	}
-
-	private Chromosome Cross((Chromosome, Chromosome) pair)
-	{
-		var (c1, c2) = pair;
-		var minX1 = Math.Min(c1.X1, c2.X1);
-		var maxX1 = Math.Max(c1.X1, c2.X1);
-		var delX1 = maxX1 - minX1;
-
-		var minX2 = Math.Min(c1.X2, c2.X2);
-		var maxX2 = Math.Max(c1.X2, c2.X2);
-		var delX2 = maxX2 - minX2;
-
-		return new Chromosome
+	private IEnumerable<Chromosome> CrossLiniar(Chromosome c1, Chromosome c2, Population population) =>
+		new[]
 		{
-			X1 = Random.NextDouble(minX1 + delX1 * CrossingoverExcess, maxX1 - delX1 * CrossingoverExcess),
-			X2 = Random.NextDouble(minX2 + delX2 * CrossingoverExcess, maxX2 - delX2 * CrossingoverExcess)
-		};
-	}
+			new Chromosome {X1 = c1.X1 * 0.5 + c2.X1 * 0.5, X2 = c1.X2 * 0.5 + c2.X2 * 0.5},
+			new Chromosome {X1 = c1.X1 * 1.5 - c2.X1 * 0.5, X2 = c1.X2 * 1.5 - c2.X2 * 0.5},
+			new Chromosome {X1 =-c1.X1 * 0.5 + c2.X1 * 1.5, X2 =-c1.X2 * 0.5 + c2.X2 * 1.5}
+		}.OrderByDescending(_ => _.CalculateFitnessFunction(population.Individuals.Select(i => i.Chromosome), population.FitnessFunction, PickRadius, Alpha))
+		 .Take(2);
 
-	public Population Mutation(Population population)
-	{
-		if (_random.NextDouble() > MutationProbability)
-			return population;
+	public Population Mutation(Population population) =>
+		_random.NextDouble() > MutationProbability
+			? population
+			: population.Individuals.Select(_ =>
+			{
+				_.Chromosome.X1 = _random.NextDouble(_.Chromosome.X1 - _.Chromosome.X1 * MutationExcess, _.Chromosome.X1 + _.Chromosome.X1 * MutationExcess);
+				_.Chromosome.X2 = _random.NextDouble(_.Chromosome.X2 - _.Chromosome.X2 * MutationExcess, _.Chromosome.X2 + _.Chromosome.X2 * MutationExcess);
+				return _;
+			}).ToList().ModifyPopulation(population);
 
-
-		foreach (var individual in population.Individuals)
-		{
-			var x1 = individual.Chromosome.X1;
-			var x2 = individual.Chromosome.X2;
-
-			individual.Chromosome.X1 = _random.NextDouble(x1 - x1 * MutationExcess, x1 + x1 * MutationExcess);
-			individual.Chromosome.X2 = _random.NextDouble(x2 - x2 * MutationExcess, x2 + x2 * MutationExcess);
-		}
-
-		return population;
-	}
-
-	public Population Reduction(Population population, int targetCount)
-	{
-		if (population.Individuals.Count == targetCount)
-			return population;
-
-		population.Individuals = population.Individuals
-		                            .OrderBy(_ => _random.NextDouble())
-		                            .Take(targetCount)
-		                            .ToList();
-		return population;
-	}
+	public Population Reduction(Population population, int targetCount) =>
+		population.Individuals.Count == targetCount
+			? population
+			: population.Individuals
+			            .RandomItems(Random, targetCount)
+			            .ToList()
+			            .NewPopulation(population);
 }
