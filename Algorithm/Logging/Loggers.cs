@@ -1,8 +1,10 @@
-﻿namespace Algorithm.Logging;
+﻿using Algorithm.Entities;
+
+namespace Algorithm.Logging;
 
 public interface ILogger
 {
-	public Task LogAsync(LoggingInfo info, string? title = null);
+	public Task LogAsync(IEnumerable<(Individual Individual, double Y)> positions, string label);
 }
 
 public class FolderLogger : ILogger
@@ -19,30 +21,29 @@ public class FolderLogger : ILogger
 		_folderPath = folderPath;
 	}
 
-	public async Task LogAsync(LoggingInfo info, string? title = null)
+	public async Task LogAsync(IEnumerable<(Individual Individual, double Y)> positions, string label)
 	{
-		var fileName = $"{title ?? $"population-{info.Step}"}.tsv";
-		var file = Path.Combine(_folderPath, fileName);
+		var file = Path.Combine(_folderPath, $"{label}.tsv");
 
 		if (File.Exists(file))
 			File.Delete(file);
 
-		var data = info.Positions.Select(_ => $"{_.Individual.Chromosome.X1}\t{_.Individual.Chromosome.X2}\t{_.Y}");
+		var data = positions.Select(_ => $"{_.Individual.X1}\t{_.Individual.X2}\t{_.Y}");
 		await File.WriteAllLinesAsync(file, data);
 	}
 }
 
 public class ConsoleLogger : ILogger
 {
-	public Task LogAsync(LoggingInfo info, string? title)
+	public Task LogAsync(IEnumerable<(Individual Individual, double Y)> positions, string label)
 	{
-		var label = $"{new string('=', 10)} {title ?? info.Step.ToString()} {new string('=', 10)}";
+		var topLabel = $"{new string('=', 10)} {label} {new string('=', 10)}";
 		Console.WriteLine(label);
 
-		foreach (var position in info.Positions)
-			Console.WriteLine($"[X1={position.Individual.Chromosome.X1}, X1={position.Individual.Chromosome.X2}] => Y = {position.Y}");
+		foreach (var position in positions)
+			Console.WriteLine($"[X1={position.Individual.X1}, X1={position.Individual.X2}] => Y = {position.Y}");
 
-		Console.WriteLine(new string('=', label.Length));
+		Console.WriteLine(new string('=', topLabel.Length));
 		return Task.CompletedTask;
 	}
 }

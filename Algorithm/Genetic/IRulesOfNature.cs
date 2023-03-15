@@ -6,11 +6,13 @@ public interface IRulesOfNature
 {
 	public Random Random { get; }
 
-	public Population Selection(Population population);
+	public IList<Individual> Selection(IList<Individual> population, FitnessFunc fitnessFunc);
 
-	public Population Replication(Population population);
+	public IList<Individual> Replication(IList<Individual> population);
 
-	public Population Mutation(Population population);
+	public IList<Individual> Mutation(IList<Individual> population);
 
-	public Population Reduction(Population population, int targetCount);
+	public IList<Individual> Reduction(IList<Individual> population, int targetCount);
 }
+
+public delegate double FitnessFunc(Individual individual);

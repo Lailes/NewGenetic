@@ -1,4 +1,5 @@
-﻿using Algorithm.Entities;
+﻿using System.Runtime.CompilerServices;
+using Algorithm.Entities;
 using Algorithm.Utils;
 
 namespace Algorithm.Genetic;
@@ -21,50 +22,54 @@ public class StandardRulesOfNature : IRulesOfNature
 	public double MutationExcess { get; set; } = 0.3;
 
 	// Tournament selection
-	public Population Selection(Population population) =>
-		Enumerable.Range(0, population.Individuals.Count)
-		          .Select(_ => population.Individuals.RandomItems(Random, TournamentSize))
-		          .Select(_ => _.MaxBy(i => CalculateFitness(i, population)))
-		          .ToList()
-		          .ModifyPopulation(population);
+	public IList<Individual> Selection(IList<Individual> population, FitnessFunc fitnessFunc) =>
+		Enumerable.Range(0, population.Count)
+		          .Select(_ => population.RandomItems(Random, TournamentSize))
+		          .Select(_ => _.MaxBy(i => CalculateFitnessFunction(i, population, fitnessFunc, PickRadius, Alpha)))
+		          .ToList();
 
-	private double CalculateFitness(Individual individual, Population population) =>
-		individual.Chromosome.CalculateFitnessFunction(population.Individuals.Select(_ => _.Chromosome).ToList(), population.FitnessFunction, PickRadius, Alpha);
+	public IList<Individual> Replication(IList<Individual> population) =>
+		population.OrderBy(_ => Random.NextDouble())
+		          .Zip(population)
+		          .Select(_ => Crossover(_.First, _.Second))
+		          .ToList();
 
-	public Population Replication(Population population) =>
-		population.Individuals
-		          .Select(_ => _.Chromosome)
-		          .OrderBy(_ => Random.NextDouble())
-		          .Chunk(2)
-		          .SelectMany(_ => CrossLiniar(_[0], _[1], population))
-		          .Select(_ => new Individual(_))
-		          .ToList()
-		          .ModifyPopulation(population);
+	private Individual Crossover(Individual c1, Individual c2) =>
+		BuildChromosome(Math.Min(c1.X1, c2.X1), Math.Max(c1.X1, c2.X1), Math.Min(c1.X2, c2.X2), Math.Max(c1.X2, c2.X2));
 
-	private IEnumerable<Chromosome> CrossLiniar(Chromosome c1, Chromosome c2, Population population) =>
-		new[]
+	private Individual BuildChromosome(double minX1, double maxX1, double minX2, double maxX2) =>
+		new()
 		{
-			new Chromosome {X1 = c1.X1 * 0.5 + c2.X1 * 0.5, X2 = c1.X2 * 0.5 + c2.X2 * 0.5},
-			new Chromosome {X1 = c1.X1 * 1.5 - c2.X1 * 0.5, X2 = c1.X2 * 1.5 - c2.X2 * 0.5},
-			new Chromosome {X1 =-c1.X1 * 0.5 + c2.X1 * 1.5, X2 =-c1.X2 * 0.5 + c2.X2 * 1.5}
-		}.OrderByDescending(_ => _.CalculateFitnessFunction(population.Individuals.Select(i => i.Chromosome), population.FitnessFunction, PickRadius, Alpha))
-		 .Take(2);
+			X1 = Random.NextDouble(minX1 + CrossingoverExcess * (maxX1 - minX1), maxX1 - CrossingoverExcess * (maxX1 - minX1)),
+			X2 = Random.NextDouble(minX2 + CrossingoverExcess * (maxX2 - minX2), maxX2 - CrossingoverExcess * (maxX2 - minX2))
+		};
 
-	public Population Mutation(Population population) =>
+	public IList<Individual> Mutation(IList<Individual> population) =>
 		_random.NextDouble() > MutationProbability
 			? population
-			: population.Individuals.Select(_ =>
+			: population.Select(_ => new Individual
 			{
-				_.Chromosome.X1 = _random.NextDouble(_.Chromosome.X1 - _.Chromosome.X1 * MutationExcess, _.Chromosome.X1 + _.Chromosome.X1 * MutationExcess);
-				_.Chromosome.X2 = _random.NextDouble(_.Chromosome.X2 - _.Chromosome.X2 * MutationExcess, _.Chromosome.X2 + _.Chromosome.X2 * MutationExcess);
-				return _;
-			}).ToList().ModifyPopulation(population);
+				X1 = _random.NextDouble(_.X1 - _.X1 * MutationExcess, _.X1 + _.X1 * MutationExcess),
+				X2 = _random.NextDouble(_.X2 - _.X2 * MutationExcess, _.X2 + _.X2 * MutationExcess)
+			}).ToList();
 
-	public Population Reduction(Population population, int targetCount) =>
-		population.Individuals.Count == targetCount
+	public IList<Individual> Reduction(IList<Individual> population, int targetCount) =>
+		population.Count == targetCount
 			? population
-			: population.Individuals
-			            .RandomItems(Random, targetCount)
-			            .ToList()
-			            .NewPopulation(population);
+			: population.RandomItems(Random, targetCount)
+			            .ToList();
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static double Distance(Individual chromosome1, Individual chromosome2) =>
+		Math.Sqrt(Math.Pow(chromosome1.X1 - chromosome2.X1, 2) + Math.Pow(chromosome1.X2 - chromosome2.X2, 2));
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static double Sh(double distance, double pickRadius, double alpha) =>
+		distance < pickRadius ? 1 - Math.Pow(distance / pickRadius, alpha) : 0;
+
+	private double CalculateFitnessFunction(Individual individual,
+	                                        IEnumerable<Individual> population,
+	                                        FitnessFunc fitnessFunc,
+	                                        double pick, double alpha) =>
+		fitnessFunc(individual) / population.Sum(_ => Sh(Distance(individual, _), pick, alpha));
 }

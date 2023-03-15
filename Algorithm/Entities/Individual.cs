@@ -1,6 +1,3 @@
 namespace Algorithm.Entities;
 
-public record Individual(Chromosome Chromosome)
-{
-    public double SurviveChance { get; set; }
-}
+public record struct Individual(double X1, double X2, double Y);

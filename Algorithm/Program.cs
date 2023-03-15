@@ -13,8 +13,8 @@ var algorithm = new GeneticAlgorithm
 {
 	PopulationSize = 100,
 	RangeBound = new RangeBound(-5, 5),
-	FitnessFunction = _ => TargetFunction(_.X1, _.X2),
 	Logger = new FolderLogger(@"C:\Users\Amade\Desktop\Populations\Data"),
+	FitnessFunc = _ => TargetFunction(_.X1, _.X2),
 	RulesOfNature = new StandardRulesOfNature
 	{
 		MutationProbability = 0.001,

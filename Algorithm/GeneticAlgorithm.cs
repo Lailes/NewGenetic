@@ -13,28 +13,23 @@ public class GeneticAlgorithm
 
 	public required IRulesOfNature RulesOfNature { get; set; }
 
-	public required Func<Chromosome, double> FitnessFunction { get; set; }
+	public ILogger Logger { get; set; }
 
-	public ILogger? Logger { get; set; }
+	public FitnessFunc FitnessFunc { get; set; }
 
-	public int[]? LogSteps { get; set; }
-
-	public async Task<Population> FindSolution(int maxIterationSize = 1000)
+	public async Task<IList<Individual>> FindSolution(int maxIterationSize = 1000)
 	{
-		var population = Population.RandomPopulation(RulesOfNature.Random, PopulationSize, RangeBound, FitnessFunction);
+		var population = PopulationFunctions.RandomPopulation(RulesOfNature.Random, PopulationSize, RangeBound);
 
-		Logger?.LogAsync(new LoggingInfo(population.IndividualPositions), "Initial Population");
+		await Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), "Initial Population");
 
 		for (var i = 0; i < maxIterationSize; i++)
 		{
-			population = population.ProcessNextPopulation(RulesOfNature);
-			if (Logger == null || (LogSteps != null && LogSteps.Contains(i))) continue;
-
-			await Logger.LogAsync(new LoggingInfo(population.IndividualPositions, i));
+			population = population.ProcessNextPopulation(RulesOfNature, FitnessFunc);
+			await Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), $"Population-{i}");
 		}
 
-		Logger?.LogAsync(new LoggingInfo(population.IndividualPositions), "Final Population");
-
+		await Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), "Final Population");
 		return population;
 	}
 }
