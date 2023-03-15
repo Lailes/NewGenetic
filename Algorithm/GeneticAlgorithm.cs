@@ -1,35 +1,34 @@
 ﻿using Algorithm.Entities;
 using Algorithm.Genetic;
-using Algorithm.Logging;
 using Algorithm.Utils;
 
 namespace Algorithm;
 
 public class GeneticAlgorithm
 {
-	public int PopulationSize { get; set; } = 100;
+	public int PopulationSize { get; init; } = 100;
 
-	public required RangeBound RangeBound { get; set; }
+	public required ValueRange Range { get; init; }
 
-	public required IRulesOfNature RulesOfNature { get; set; }
+	public required IRulesOfNature RulesOfNature { get; init; }
 
-	public ILogger Logger { get; set; }
+	public required ILogger Logger { get; init; }
 
-	public FitnessFunc FitnessFunc { get; set; }
+	public required Func<Individual, double> FitnessFunc { get; init; }
 
 	public async Task<IList<Individual>> FindSolution(int maxIterationSize = 1000)
 	{
-		var population = PopulationFunctions.RandomPopulation(RulesOfNature.Random, PopulationSize, RangeBound);
+		var population = PopulationFunctions.RandomPopulation(PopulationSize, Range);
 
-		await Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), "Initial Population");
-
-		for (var i = 0; i < maxIterationSize; i++)
+		await Log(population, "Initial Population");
+		await Task.WhenAll(Enumerable.Range(0, maxIterationSize).Select(i =>
 		{
-			population = population.ProcessNextPopulation(RulesOfNature, FitnessFunc);
-			await Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), $"Population-{i}");
-		}
-
-		await Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), "Final Population");
+			population = population.ProcessNextPopulation(RulesOfNature, FitnessFunc, Range);
+			return Log(population, $"Population-{i}");
+		}).ToArray());
+		await Log(population, "Final Population");
 		return population;
 	}
+
+	private Task Log(IEnumerable<Individual> population, string title) => Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), title);
 }

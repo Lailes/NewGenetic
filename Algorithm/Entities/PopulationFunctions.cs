@@ -5,18 +5,23 @@ namespace Algorithm.Entities;
 
 public static class PopulationFunctions
 {
-	public static IList<Individual> RandomPopulation(Random random, int count, RangeBound rangeBound) =>
-		Enumerable.Range(0, count).Select(_ => new Individual { X1 = random.NextDouble(rangeBound), X2 = random.NextDouble(rangeBound)}).ToList();
+	public static IList<Individual> RandomPopulation(int count, ValueRange range) =>
+		Enumerable.Range(0, count)
+		          .Select(_ => new Individual { X1 = range.NextDouble(), X2 = range.NextDouble()}).ToList();
 
-	public static IList<Individual> ProcessNextPopulation(this IList<Individual> population, IRulesOfNature nature, FitnessFunc fitnessFunc)
+	public static IList<Individual> ProcessNextPopulation(this IList<Individual> population,
+	                                                      IRulesOfNature nature,
+	                                                      Func<Individual, double> fitnessFunc,
+	                                                      ValueRange range)
 	{
 		var initialCount = population.Count;
 
-		// Algorithm nature core. RULES OF NATURE!
-		population = nature.Selection(population, fitnessFunc);
-		population = nature.Replication(population);
-		population = nature.Mutation(population);
-		population = nature.Reduction(population, initialCount);
+		var parents = nature.Selection(population, fitnessFunc);
+		var childs = nature.Mutation(nature.Replication(parents), range);
+
+		population = population.Concat(childs).ToList();
+
+		population = nature.Reduction(population, fitnessFunc, initialCount);
 
 		return population;
 	}

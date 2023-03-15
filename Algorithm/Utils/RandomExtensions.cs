@@ -2,11 +2,14 @@
 
 public static class RandomExtensions
 {
-	public static double NextDouble(this Random random, double min, double max) => min + random.NextDouble() * (max - min);
+	public static double NextDouble(this ValueRange range) => range.From + Random.Shared.NextDouble() * (range.To - range.From);
 
-	public static double NextDouble(this Random random, RangeBound rangeBound) => random.NextDouble(rangeBound.From, rangeBound.To);
+	public static double NextDouble(double min, double max) => min + Random.Shared.NextDouble() * (max - min);
 
-	public static IEnumerable<T> RandomItems<T>(this IList<T> source, Random random, int count) =>
+	public static IEnumerable<T> RandomItems<T>(this IList<T> source, int count) =>
 		Enumerable.Range(0, count)
-		          .Select(_ => source[random.Next(0, source.Count)]);
+		          .Select(_ => source[Random.Shared.Next(0, source.Count)]);
+
+	public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source) =>
+		source.OrderBy(_ => Random.Shared.NextDouble());
 }
