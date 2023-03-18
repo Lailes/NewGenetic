@@ -14,21 +14,10 @@ public class GeneticAlgorithm
 
 	public required ILogger Logger { get; init; }
 
-	public required Func<Individual, double> FitnessFunc { get; init; }
+	public required Func<double, double, double> FitnessFunc { get; init; }
 
-	public async Task<IList<Individual>> FindSolution(int maxIterationSize = 1000)
-	{
-		var population = PopulationFunctions.RandomPopulation(PopulationSize, Range);
-
-		await Log(population, "Initial Population");
-		await Task.WhenAll(Enumerable.Range(0, maxIterationSize).Select(i =>
-		{
-			population = population.ProcessNextPopulation(RulesOfNature, FitnessFunc, Range);
-			return Log(population, $"Population-{i}");
-		}).ToArray());
-		await Log(population, "Final Population");
-		return population;
-	}
-
-	private Task Log(IEnumerable<Individual> population, string title) => Logger.LogAsync(population.Select(_ => (_, FitnessFunc(_))), title);
+	public IEnumerable<Individual> FindSolution(int maxIterationSize = 1000) =>
+		Enumerable.Range(0, maxIterationSize)
+		          .Aggregate(PopulationFunctions.RandomPopulation(PopulationSize, Range, FitnessFunc), (p, i) => p.Log(Logger, $"Population-{i}").ProcessNextPopulation(RulesOfNature, Range))
+		          .DistinctBy(individual => ((int) Math.Round(individual.X1), (int) Math.Round(individual.X2)));
 }

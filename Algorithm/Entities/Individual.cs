@@ -1,6 +1,9 @@
 namespace Algorithm.Entities;
 
-public record struct Individual(double X1, double X2);
+public readonly record struct Individual(double X1, double X2, Func<double, double, double> FitnessFunc)
+{
+	public double Y => FitnessFunc(X1, X2);
+}
 
 public static class IndividualExtensions
 {
@@ -12,7 +15,6 @@ public static class IndividualExtensions
 
 	public static double CalculateFitnessFunction(this Individual individual,
 	                                              IEnumerable<Individual> population,
-	                                              Func<Individual, double> fitnessFunc,
 	                                              double pick, double alpha) =>
-		fitnessFunc(individual) / population.Sum(_ => Sh(Distance(individual, _), pick, alpha));
+		individual.Y / population.Sum(_ => Sh(Distance(individual, _), pick, alpha));
 }

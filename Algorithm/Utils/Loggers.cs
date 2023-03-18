@@ -4,7 +4,13 @@ namespace Algorithm.Utils;
 
 public interface ILogger
 {
-	public Task LogAsync(IEnumerable<(Individual Individual, double Y)> positions, string label);
+	public IList<Individual> Log(IList<Individual> positions, string label);
+}
+
+public static class LoggerExtensions
+{
+	public static IList<Individual> Log(this IList<Individual> positions, ILogger logger, string label) =>
+		logger.Log(positions, label);
 }
 
 public class FolderLogger : ILogger
@@ -21,14 +27,15 @@ public class FolderLogger : ILogger
 		_folderPath = folderPath;
 	}
 
-	public async Task LogAsync(IEnumerable<(Individual Individual, double Y)> positions, string label)
+	public IList<Individual> Log(IList<Individual> positions, string label)
 	{
 		var file = Path.Combine(_folderPath, $"{label}.tsv");
 
 		if (File.Exists(file))
 			File.Delete(file);
 
-		var data = positions.Select(_ => $"{_.Individual.X1}\t{_.Individual.X2}\t{_.Y}");
-		await File.WriteAllLinesAsync(file, data);
+		var data = positions.Select(_ => $"{_.X1}\t{_.X2}\t{_.Y}");
+		File.WriteAllLines(file, data);
+		return positions;
 	}
 }
