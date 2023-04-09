@@ -1,14 +1,11 @@
-﻿using Utils;
+﻿using Lab.Two;
+using Utils;
 
 namespace Genetic;
 
-public class StandardRulesOfNature<T> : IRulesOfNature<T>
+public class StandardRulesOfNature: IRulesOfNature<Individual>
 {
-	public int TournamentSize { get; init; } = 4;
-
-	public double Alpha { get; init; } = 1;
-
-	public double PickRadius { get; init; } = 1;
+	public int TournamentSize { get; init; } = 3;
 
 	public double MutationIncident { get; init; } = 0.001;
 
@@ -16,43 +13,48 @@ public class StandardRulesOfNature<T> : IRulesOfNature<T>
 
 	public double MutationExcess { get; init; } = 0.3;
 
+	public FitnessCalculator FitnessCalculator { get; set; }
+
+	public IList<Individual> CreatePopulation(int count, ValueRange range) =>
+		FitnessCalculator.CalculateFitnessValue(PopulationFunctions.RandomPopulation(count, 2, range));
+
 	public IList<Individual> Selection(IList<Individual> population) =>
+	 	IndividualsSelection(FitnessCalculator.CalculateFitnessValue(population));
+
+	private IList<Individual> IndividualsSelection(IList<Individual> population) =>
 		Enumerable.Range(0, population.Count)
 		          .Select(_ => population.RandomItems(TournamentSize))
-		          .Select(_ => _.MaxBy(i => i.CalculateFitnessFunction(population, PickRadius, Alpha)))
-		          .ToList();
+		          .Select(_ => _.MaxBy(i => 1 / (1 + i.Rank)))
+		          .ToList()!;
 
 	public IList<Individual> Replication(IList<Individual> population) =>
 		population.Shuffle()
-		          .Select(p1 => (Parent1: p1, Parent2: population.Shuffle().FirstOrDefault(p2 => p1 != p2 && p1.Distance(p2) <= PickRadius * 1.5)))
+		          .Select(p1 => (Parent1: p1, Parent2: population.Shuffle().FirstOrDefault(p2 => p1 != p2)))
 		          .Select(_ => Crossover(_.Parent1, _.Parent2))
 		          .ToList();
 
 	private Individual Crossover(in Individual c1, in Individual c2) =>
-		Build(c1, Cross(Math.Min(c1.X1, c2.X1), Math.Max(c1.X1, c2.X1), Math.Min(c1.X2, c2.X2), Math.Max(c1.X2, c2.X2)));
-
-	private (double X1, double X2) Cross(double minX1, double maxX1, double minX2, double maxX2) =>
-			(X1: RandomExtensions.NextDouble(minX1 + CrossoverExcess * (maxX1 - minX1), maxX1 - CrossoverExcess * (maxX1 - minX1)),
-			 X2: RandomExtensions.NextDouble(minX2 + CrossoverExcess * (maxX2 - minX2), maxX2 - CrossoverExcess * (maxX2 - minX2)));
-
-	private static Individual Build(in Individual individual, (double X1, double X2) pair) => individual with { X1 = pair.X1, X2 = pair.X2 };
+		new(c1.Data
+		      .Zip(c2.Data)
+		      .Select(_ => RandomExtensions.NextDouble(_.First + CrossoverExcess * (_.Second - _.First), _.Second - CrossoverExcess * (_.Second - _.First)))
+		      .ToList());
 
 	public IList<Individual> Mutation(IList<Individual> population, ValueRange range) =>
 		population.Select(individual => Mutate(individual, range)).ToList();
 
-	private Individual Mutate(in Individual individual, in ValueRange range) =>
+	private Individual Mutate(in Individual individual, ValueRange range) =>
 		Random.Shared.NextDouble() > MutationIncident
 			? individual with
 			{
-				X1 = RandomExtensions.NextDouble(individual.X1 - individual.X1 * MutationExcess, individual.X1 + individual.X1 * MutationExcess).LimitByRange(range),
-				X2 = RandomExtensions.NextDouble(individual.X2 - individual.X2 * MutationExcess, individual.X2 + individual.X2 * MutationExcess).LimitByRange(range),
+				Data = individual.Data.Select(_ => RandomExtensions.NextDouble(_ - _ * MutationExcess, _ + _ * MutationExcess).LimitByRange(range)).ToList()
 			}
 			: individual;
 
 	public IList<Individual> Reduction(IList<Individual> population, int targetCount) =>
 		population.Count == targetCount
 			? population
-			: population.OrderByDescending(_ => _.CalculateFitnessFunction(population, PickRadius, Alpha))
-			            .Take(targetCount)
-			            .ToList();
+			: FitnessCalculator.CalculateFitnessValue(population)
+			                   .OrderByDescending(_ => 1 / (1 + _.Rank))
+			                   .Take(targetCount)
+			                   .ToList();
 }

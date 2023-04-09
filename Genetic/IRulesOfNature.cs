@@ -1,15 +1,16 @@
-﻿using Algorithm.Entities;
-using Utils;
+﻿using Utils;
 
-namespace Algorithm.Genetic;
+namespace Genetic;
 
-public interface IRulesOfNature
+public interface IRulesOfNature<TIndividual>
 {
-	public IList<Individual> Selection(IList<Individual> population);
+	public IList<TIndividual> CreatePopulation(int count, ValueRange range);
 
-	public IList<Individual> Replication(IList<Individual> population);
+	public IList<TIndividual> Selection(IList<TIndividual> population);
 
-	public IList<Individual> Mutation(IList<Individual> population, ValueRange range);
+	public IList<TIndividual> Replication(IList<TIndividual> population);
 
-	public IList<Individual> Reduction(IList<Individual> population, int targetCount);
+	public IList<TIndividual> Mutation(IList<TIndividual> population, ValueRange range);
+
+	public IList<TIndividual> Reduction(IList<TIndividual> population, int targetCount);
 }

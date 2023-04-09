@@ -1,19 +1,13 @@
-﻿using Algorithm.Entities;
-using Genetic;
+﻿using Genetic;
 using Utils;
 
-namespace Lab.Two.Entities;
+namespace Lab.Two;
 
 public static class PopulationFunctions
 {
-	public static IList<Individual> RandomPopulation(int count, ValueRange range, Func<double, double, double> fitnessFunc) =>
+	public static IList<Individual> RandomPopulation(int count, int functionRank, ValueRange range) =>
 		Enumerable.Range(0, count)
-		          .Select(_ => new Individual
-		          {
-			          X1 = range.NextDouble(),
-			          X2 = range.NextDouble(),
-			          FitnessFunc = fitnessFunc
-		          }).ToList();
+		          .Select(_ => new Individual(Enumerable.Repeat(0, functionRank).Select(_ => range.NextDouble()).ToList())).ToList();
 
 	public static IList<Individual> ProcessNextPopulation(this IList<Individual> population,
 	                                                      IRulesOfNature<Individual> nature,
