@@ -1,13 +1,14 @@
 ﻿using System.Diagnostics;
 using Algorithm;
+using Algorithm.Entities;
 using Algorithm.Genetic;
-using Algorithm.Utils;
+using Utils;
 
 var algorithm = new GeneticAlgorithm
 {
 	PopulationSize = 100,
 	Range = new(-5, 5),
-	Logger = new FolderLogger(@"C:\Users\Amade\Desktop\Populations\Data"),
+	Logger = new FolderLogger<Individual>(@"C:\Users\Amade\Desktop\Populations\Data"),
 	FitnessFunc = (x1, x2) => 200- Math.Pow(x1 * x1 + x2 - 11, 2) - Math.Pow(x1 + x2 * x2 - 7, 2),
 	RulesOfNature = new StandardRulesOfNature
 	{

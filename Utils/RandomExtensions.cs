@@ -1,4 +1,4 @@
-﻿namespace Algorithm.Utils;
+﻿namespace Utils;
 
 public static class RandomExtensions
 {

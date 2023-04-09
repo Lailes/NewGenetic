@@ -1,4 +1,4 @@
-﻿namespace Algorithm.Utils;
+﻿namespace Utils;
 
 public record struct ValueRange(double From, double To);
 

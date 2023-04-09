@@ -1,5 +1,5 @@
 ﻿using Algorithm.Genetic;
-using Algorithm.Utils;
+using Utils;
 
 namespace Algorithm.Entities;
 

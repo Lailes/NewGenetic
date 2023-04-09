@@ -1,6 +1,6 @@
 ﻿using Algorithm.Entities;
 using Algorithm.Genetic;
-using Algorithm.Utils;
+using Utils;
 
 namespace Algorithm;
 
@@ -12,7 +12,7 @@ public class GeneticAlgorithm
 
 	public required IRulesOfNature RulesOfNature { get; init; }
 
-	public required ILogger Logger { get; init; }
+	public required ILogger<Individual> Logger { get; init; }
 
 	public required Func<double, double, double> FitnessFunc { get; init; }
 

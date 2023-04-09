@@ -3,6 +3,8 @@ namespace Algorithm.Entities;
 public readonly record struct Individual(double X1, double X2, Func<double, double, double> FitnessFunc)
 {
 	public double Y => FitnessFunc(X1, X2);
+
+	public override string ToString() => $"X1={X1}\tX2={X2}\tY={Y}";
 }
 
 public static class IndividualExtensions
